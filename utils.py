@@ -1,7 +1,8 @@
 import os
 import numpy as np
 import pickle
-import torch
+
+# import torch
 import mrcfile
 from datetime import datetime, timezone
 from rdkit import Chem
@@ -11,50 +12,57 @@ from subprocess import Popen, PIPE, DEVNULL
 def normalize(x):
     return (x - x.min()) / (x.max() - x.min())
 
+
 def create_dir(dir_list):
-    assert  isinstance(dir_list, list) == True
+    assert isinstance(dir_list, list) == True
     for d in dir_list:
         if not os.path.exists(d):
             os.makedirs(d)
 
+
 def save_model_dict(model, model_dir, msg):
-    model_path = os.path.join(model_dir, msg + '.pt')
+    model_path = os.path.join(model_dir, msg + ".pt")
     torch.save(model.state_dict(), model_path)
     print("model has been saved to %s." % (model_path))
+
 
 def load_model_dict(model, ckpt):
     model.load_state_dict(torch.load(ckpt))
 
+
 def del_file(path):
     for i in os.listdir(path):
-        path_file = os.path.join(path,i)  
+        path_file = os.path.join(path, i)
         if os.path.isfile(path_file):
             os.remove(path_file)
         else:
             del_file(path_file)
 
+
 def write_pickle(filename, obj):
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         pickle.dump(obj, f)
 
+
 def read_pickle(filename):
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         obj = pickle.load(f)
     return obj
+
 
 class BestMeter(object):
     """Computes and stores the best value"""
 
     def __init__(self, best_type):
-        self.best_type = best_type  
-        self.count = 0      
+        self.best_type = best_type
+        self.count = 0
         self.reset()
 
     def reset(self):
-        if self.best_type == 'min':
-            self.best = float('inf')
+        if self.best_type == "min":
+            self.best = float("inf")
         else:
-            self.best = -float('inf')
+            self.best = -float("inf")
 
     def update(self, best):
         self.best = best
@@ -90,12 +98,13 @@ class AverageMeter(object):
 
         return self.avg
 
+
 def run_script_inside_chimera(
     script_name,
     script_path=os.getcwd() + os.path.sep + "chimera_scripts",
     option_names=(),
     option_values=(),
-    output_file=None
+    output_file=None,
 ):
     """
     Runs given python script inside Chimera through a subprocess (simulates running
@@ -135,14 +144,15 @@ def run_script_inside_chimera(
         else:
             option = f" {option_names[i]}"
         script_line += option
-    
+
     # construct full Chimera's command
     command = [
-            "chimera",
-            "--nogui",
-            "--nostatus",
-            "--script", script_line,
-            ]   
+        "chimera",
+        "--nogui",
+        "--nostatus",
+        "--script",
+        script_line,
+    ]
 
     p = Popen(
         command,
@@ -198,14 +208,15 @@ def run_script_inside_chimeraX(
         else:
             option = f" {option_names[i]}"
         script_line += option
-    
+
     # construct full Chimera's command
     command = [
-            "ChimeraX",
-            "--nogui",
-            "--nostatus",
-            "--script", script_line,
-            ]   
+        "ChimeraX",
+        "--nogui",
+        "--nostatus",
+        "--script",
+        script_line,
+    ]
 
     p = Popen(
         command,
@@ -272,7 +283,7 @@ def compute_density_map_in_chimeraX(
     script_path=os.getcwd() + os.path.sep + "chimeraX_scripts",
 ):
     """
-    Computes density map for the given molecule/conformer using ChimeraX. 
+    Computes density map for the given molecule/conformer using ChimeraX.
     The computed map has a cubic box with the specified number of points (n_box).
     To achieve this, runs python script "chimeraX_density_map.py" inside ChimeraX through a
     subprocess.
@@ -309,6 +320,7 @@ def compute_density_map_in_chimeraX(
     )
 
     return p
+
 
 def compute_mol_map_correlation_in_chimera(
     molecule_path_full,
@@ -354,7 +366,7 @@ def compute_mol_map_correlation_in_chimera(
         script_path=script_path,
         option_names=option_names,
         option_values=option_values,
-        output_file=output_file
+        output_file=output_file,
     )
 
     return p
@@ -395,7 +407,12 @@ def compute_mol_map_correlation_in_chimeraX(
 
     # options for the python script
     option_names = ["-i", "-r", "-b", "-t"]
-    option_values = [molecule_path_full, density_resolution, n_box, target_density_path_full]
+    option_values = [
+        molecule_path_full,
+        density_resolution,
+        n_box,
+        target_density_path_full,
+    ]
     if is_log:
         option_names.append("-l")
         option_values.append(log_path)
@@ -406,10 +423,11 @@ def compute_mol_map_correlation_in_chimeraX(
         script_path=script_path,
         option_names=option_names,
         option_values=option_values,
-        output_file=output_file
+        output_file=output_file,
     )
 
     return p
+
 
 def fit_into_map_in_chimera(
     input_path_full,
@@ -456,14 +474,15 @@ def fit_into_map_in_chimera(
         script_path=script_path,
         option_names=option_names,
         option_values=option_values,
-        output_file=output_chimera_file
+        output_file=output_chimera_file,
     )
 
     return p
 
+
 def extract_correlation_from_chimera_file(output_path_full, not_found_value=0.0):
     """
-    Extracts correlation value from the given Chimera output file. 
+    Extracts correlation value from the given Chimera output file.
     NOTE: works only for both Chimera and ChimeraX.
 
     Args:
@@ -472,7 +491,7 @@ def extract_correlation_from_chimera_file(output_path_full, not_found_value=0.0)
         is not found in the file
 
     Returns:
-        correlation - correlation value   
+        correlation - correlation value
     """
 
     # assign initial value, it will be returned if the correlation value
@@ -483,14 +502,14 @@ def extract_correlation_from_chimera_file(output_path_full, not_found_value=0.0)
         for line in file:
             line = line.strip().lower()
             if line.startswith("correlation"):
-                start_ind = line.find("=") # index of the equl sign
-                if start_ind == -1: # if equal sign wasn't found, go to the next line
+                start_ind = line.find("=")  # index of the equl sign
+                if start_ind == -1:  # if equal sign wasn't found, go to the next line
                     continue
-                start_ind += 1 # junp over the whitespace
-                end_ind = start_ind # index of the comma separating correlation value
+                start_ind += 1  # junp over the whitespace
+                end_ind = start_ind  # index of the comma separating correlation value
                 while line[end_ind] != ",":
                     end_ind += 1
-                correlation = float(line[start_ind: end_ind])
+                correlation = float(line[start_ind:end_ind])
                 break
 
     return correlation
@@ -569,6 +588,7 @@ def read_density_data_txt(
     density = density.reshape(dims)
 
     return density
+
 
 def delete_extension_from_filename(filename):
     """
@@ -673,9 +693,7 @@ def read_molecule_from_pdb(
     return mol
 
 
-def read_molecule(
-    path_full, remove_Hs=True
-):
+def read_molecule(path_full, remove_Hs=True):
     """
     Reads one molecule data from the given file and converts it to an RDKit molecule object.
 
@@ -695,15 +713,11 @@ def read_molecule(
 
     match file_format:
         case "sdf":
-            mols = read_molecules_from_sdf(
-                path_full, n_mols=1, remove_Hs=remove_Hs
-            )
+            mols = read_molecules_from_sdf(path_full, n_mols=1, remove_Hs=remove_Hs)
             return mols[0]
 
         case "pdb":
-            mol = read_molecule_from_pdb(
-                path_full, remove_Hs=remove_Hs
-            )
+            mol = read_molecule_from_pdb(path_full, remove_Hs=remove_Hs)
             return mol
 
         case default:
@@ -825,12 +839,12 @@ def group_conformers_to_single_file(
 
 
 def rescale_density_map(
-        density_path_full, 
-        rescaled_path_full, 
-        box_size=16,
-    ):
+    density_path_full,
+    rescaled_path_full,
+    box_size=16,
+):
     """
-    Rescales given density map such that it fits the given box size. 
+    Rescales given density map such that it fits the given box size.
     Achieves this by running relion software commands through a subprocess.
 
     Args:
@@ -841,18 +855,21 @@ def rescale_density_map(
     Returns:
         p - object of the Popen class corresponding to the relion's subprocess
     """
-  
+
     # run relion's command through a subpprocess
     p = Popen(
-    [
-        "relion_image_handler",
-        "--i", density_path_full,
-        "--new_box", str(box_size),
-        "--o", rescaled_path_full,
-    ],
-    stderr=PIPE,
+        [
+            "relion_image_handler",
+            "--i",
+            density_path_full,
+            "--new_box",
+            str(box_size),
+            "--o",
+            rescaled_path_full,
+        ],
+        stderr=PIPE,
     )
-    
+
     return p
 
 
@@ -863,69 +880,70 @@ def align_center_mass_of_densities(to_align_path_full, target_path_full):
     Both files must be .mrc files!
 
     Args:
-        to_align_path_full - full path to the density we align (including file's name)  
-        target_path_full - full path to the target density (including file's name)   
+        to_align_path_full - full path to the density we align (including file's name)
+        target_path_full - full path to the target density (including file's name)
     """
-    
+
     assert to_align_path_full.endswith(".mrc"), "Input mrc filename must end with .mrc!"
     assert target_path_full.endswith(".mrc"), "Target mrc filename must end with .mrc!"
 
     # read data of the map to align
-    density_map_to_align, header_to_align, voxel_size_to_align = read_density_data_mrc(to_align_path_full)
+    density_map_to_align, header_to_align, voxel_size_to_align = read_density_data_mrc(
+        to_align_path_full
+    )
     origin_to_align = header_to_align.origin
     origin_to_align = np.array(origin_to_align.tolist())
 
     # for the map to align compute coordinates of center of mass
     center_of_mass_to_align = calculate_center_of_mass_of_density(
-                                                                density_map_to_align, 
-                                                                voxel_size=voxel_size_to_align, 
-                                                                origin=origin_to_align
-                                                                ) 
-    
+        density_map_to_align, voxel_size=voxel_size_to_align, origin=origin_to_align
+    )
+
     # read data of the target map
-    density_map_target, header_target, voxel_size_target = read_density_data_mrc(target_path_full)
+    density_map_target, header_target, voxel_size_target = read_density_data_mrc(
+        target_path_full
+    )
     origin_target = header_target.origin
     origin_target = np.array(origin_target.tolist())
 
     # for the target map compute indices of center of mass (center of mass in voxel space)
     center_of_mass_target = calculate_center_of_mass_of_density(
-                                                                density_map_target,
-                                                                voxel_size=voxel_size_target, 
-                                                                origin=origin_target
-                                                                ) 
-    
+        density_map_target, voxel_size=voxel_size_target, origin=origin_target
+    )
+
     # calculate the difference between centers of mass
     diff = center_of_mass_target - center_of_mass_to_align
 
-    with mrcfile.open(to_align_path_full, 'r+') as mrc:
+    with mrcfile.open(to_align_path_full, "r+") as mrc:
         mrc.header.origin.x += diff[0]
         mrc.header.origin.y += diff[1]
         mrc.header.origin.z += diff[2]
 
+
 def align_density_maps(
-        to_align_path_full, 
-        target_path_full, 
-        output_path_full,
-        output_chimera_path_full,
-        thresh_corr=0.9,
-        not_found_corr_value=0.0,
-        is_log=False,
-        log_path=os.getcwd() + os.path.sep + "chimera_logs",
-        script_path=os.getcwd() + os.path.sep + "chimera_scripts",
-    ):
+    to_align_path_full,
+    target_path_full,
+    output_path_full,
+    output_chimera_path_full,
+    thresh_corr=0.9,
+    not_found_corr_value=0.0,
+    is_log=False,
+    log_path=os.getcwd() + os.path.sep + "chimera_logs",
+    script_path=os.getcwd() + os.path.sep + "chimera_scripts",
+):
     """
-    Aligns given density map to the target density map: 
-    1. Shifts given density map (to_align_path_full) such that its center of mass matches the one 
+    Aligns given density map to the target density map:
+    1. Shifts given density map (to_align_path_full) such that its center of mass matches the one
     of target density map (target_path_full).
-    2. Fits shifted density map into the target density map to fully align the maps. 
-    3. Checks if the fitting correlation is gerated than the set threshold (thresh_corr). 
+    2. Fits shifted density map into the target density map to fully align the maps.
+    3. Checks if the fitting correlation is gerated than the set threshold (thresh_corr).
     If not, raises RuntimeError.
 
     Args:
-        to_align_path_full - full path to the density we align (including file's name)  
-        target_path_full - full path to the target density (including file's name)   
+        to_align_path_full - full path to the density we align (including file's name)
+        target_path_full - full path to the target density (including file's name)
         output_path_full - full path to the output file (including its name) where fitted density will be written
-        output_chimera_path_full - full path to the file where Chimera output will be written. 
+        output_chimera_path_full - full path to the file where Chimera output will be written.
         NOTE: here it's necessarry to provide this file since fitting scores will be written there
         thresh_corr - threshold value for the correlation between fitted molecule/density and
         target density. If the computed correlation is less than the threshold - raises RunTimeError
@@ -936,11 +954,13 @@ def align_density_maps(
 
     """
 
-    # match center of masses 
+    # match center of masses
     align_center_mass_of_densities(to_align_path_full, target_path_full)
 
     # fit shifted density map
-    with open(output_chimera_path_full, "w") as output_chimera_file: # open file to store fitting scores
+    with open(
+        output_chimera_path_full, "w"
+    ) as output_chimera_file:  # open file to store fitting scores
         p = fit_into_map_in_chimera(
             to_align_path_full,
             target_path_full,
@@ -948,19 +968,23 @@ def align_density_maps(
             output_chimera_file,
             is_log=is_log,
             log_path=log_path,
-            script_path=script_path
+            script_path=script_path,
         )
-        _, stderr = p.communicate() # catch errors from Chimera subprocess
+        _, stderr = p.communicate()  # catch errors from Chimera subprocess
 
     if (p.returncode == 0) and (not stderr):
-        corr = extract_correlation_from_chimera_file(output_chimera_path_full, not_found_value=not_found_corr_value)
+        corr = extract_correlation_from_chimera_file(
+            output_chimera_path_full, not_found_value=not_found_corr_value
+        )
         if corr < thresh_corr:
-            raise RuntimeError(f"Error in fitting: computed correlation: {corr} is less than the threshold correlation: {thresh_corr}.")
+            raise RuntimeError(
+                f"Error in fitting: computed correlation: {corr} is less than the threshold correlation: {thresh_corr}."
+            )
     else:
-        raise RuntimeError(f"Error in fitting: failed to fit through Chimera script. Return code: {p.returncode}, stderr: {stderr}.")
+        raise RuntimeError(
+            f"Error in fitting: failed to fit through Chimera script. Return code: {p.returncode}, stderr: {stderr}."
+        )
 
-
-    
 
 def read_density_data_mrc(density_path_full):
     """
@@ -968,7 +992,7 @@ def read_density_data_mrc(density_path_full):
     and voxel size in each direction.
 
     Args:
-        density_path_full - full path to the denstiy mrc file (including its name) 
+        density_path_full - full path to the denstiy mrc file (including its name)
 
     Returns:
         density - array with the density
@@ -982,82 +1006,86 @@ def read_density_data_mrc(density_path_full):
         header = mrc.header
         voxel_size = np.array(
             [
-            mrc.voxel_size.x,
-            mrc.voxel_size.y,
-            mrc.voxel_size.z,
+                mrc.voxel_size.x,
+                mrc.voxel_size.y,
+                mrc.voxel_size.z,
             ]
-        ) 
+        )
 
     return density, header, voxel_size
 
 
-def calculate_center_of_mass_of_density(density_map, voxel_size=np.ones(3), origin=np.zeros(3)):
+def calculate_center_of_mass_of_density(
+    density_map, voxel_size=np.ones(3), origin=np.zeros(3)
+):
     """
     Calculate the center of mass for a 3D cryo-EM density map.
-    
+
     Args:
         density_map - 3D numpy array of the density map
         voxel_size - the size of each voxel (angstroms, for example)
         origin - numpy array with the origin coordinates (in the units of voxel_size)
-        
+
     Returns:
-        com - the center of mass (x, y, z) in voxel space or physical space 
+        com - the center of mass (x, y, z) in voxel space or physical space
         if voxel_size and origin are provided
     """
     # Get the shape of the density map
     shape = density_map.shape
-    
+
     # Create a grid of coordinates for each axis
     x = np.arange(0, shape[0])  # X axis
     y = np.arange(0, shape[1])  # Y axis
     z = np.arange(0, shape[2])  # Z axis
-    
+
     # Calculate the weighted sum for each axis
     total_mass = np.sum(density_map)  # Total mass (sum of all density values)
-    
+
     if total_mass == 0:
         raise ValueError("Density map has no mass (sum of density values is zero).")
-    
+
     x_com = np.sum(density_map * x[:, None, None]) / total_mass
     y_com = np.sum(density_map * y[None, :, None]) / total_mass
     z_com = np.sum(density_map * z[None, None, :]) / total_mass
-    
+
     # The center of mass in voxel coordinates
     com_voxel = np.array([x_com, y_com, z_com])
-    
+
     # Convert to physical coordinates if voxel_size and origin are provided
     com = com_voxel * voxel_size + origin
-    
+
     return com
+
 
 def calculate_ligand_size(mol):
     """
     Calculate the maximum size (molecular length) of a ligand.
-    
+
     Args:
         mol - RDKit molecule object with 3D coordinates
-    
+
     Returns:
         max_distance - maximum distance between any two atoms (molecular size)
     """
-    
+
     # If the given molecule has more or less than one conformer, it's ambiguous
     # to compute the ligand size.
     assert (
         mol.GetNumConformers() == 1
     ), f"Ambiguity in the ligand size calculation! The RDKit molecule should have only one conformer but has: {mol.GetNumConformers()}"
-    
+
     # Get the 3D coordinates of the atoms
     conformer = mol.GetConformer()
     coords = conformer.GetPositions()
-    
+
     # Calculate the pairwise distances between atoms
     distances = np.linalg.norm(coords[:, None, :] - coords[None, :, :], axis=-1)
-    
+
     # Find the maximum distance (size of the molecule)
     max_distance = np.max(distances)
-    
+
     return max_distance
+
 
 def log(
     message,
@@ -1087,12 +1115,15 @@ def log(
     # log_message includes utc time of the message, status of the message
     # and the message itself
     log_message = (
-        datetime.now(timezone.utc).strftime("%H:%M:%S.%f") + " " + status + ": " + message
+        datetime.now(timezone.utc).strftime("%H:%M:%S.%f")
+        + " "
+        + status
+        + ": "
+        + message
     )
 
     with open(path_full, "a") as f:
         f.write(log_message)
-        
 
 
 def create_folder(folder_path):
@@ -1108,8 +1139,8 @@ def create_folder(folder_path):
 
 
 def split_sdf_file_to_pdbs(
-    sdf_path_full, 
-    base_pdb_filename, 
+    sdf_path_full,
+    base_pdb_filename,
     pdb_path=os.getcwd() + os.path.sep + "split_pdb",
     remove_Hs=False,
 ):
@@ -1122,10 +1153,10 @@ def split_sdf_file_to_pdbs(
         base_pdb_filename - base filename for output .pdb files
         pdb_path - path to the folder where ouput .pdb files will be stored
         remove_Hs - whether to remove hydrogen atoms from the molecules when reading
-    
+
     Returns:
         n_mols - number of molecules read from the input .sdf file
-        pdb_path_full_list - list with full paths to the output pdb files (including their names) 
+        pdb_path_full_list - list with full paths to the output pdb files (including their names)
     """
 
     assert sdf_path_full.endswith(".sdf"), "sdf filename must end with .sdf!"
@@ -1144,7 +1175,7 @@ def split_sdf_file_to_pdbs(
             mols.append(mol)
             n_mols += 1
 
-    pdb_path_full_list = []  # list to store full paths of the output .pdb files   
+    pdb_path_full_list = []  # list to store full paths of the output .pdb files
     for i in range(n_mols):
         pdb_filename = f"mol_{i + 1}_" + base_pdb_filename
         mol = mols[i]
@@ -1152,6 +1183,5 @@ def split_sdf_file_to_pdbs(
             mol, -1, pdb_filename, pdb_path=pdb_path
         )
         pdb_path_full_list.append(pdb_path_full)
-
 
     return n_mols, pdb_path_full_list

@@ -11,7 +11,7 @@ from utils import (
     read_density_data_mrc,
     delete_extension_from_filename,
     extract_filename_from_full_path,
-    create_folder
+    create_folder,
 )
 
 # NOTE: we can try this version of the function in the future
@@ -56,11 +56,11 @@ from utils import (
 #             atoms_lines.append(i)
 #         else:
 #             non_atoms_lines.add(i)
-    
+
 #     # randomly delete lines related to atoms
 #     n_atom_lines_to_delete = int(len(atoms_lines) * delete_prob) # the number of atom lines to delete
-#     # generate indices of atoms' lines that should be kept 
-#     atom_lines_to_keep = set(np.random.choice(atoms_lines, size=len(atoms_lines) - n_atom_lines_to_delete, replace=False)) 
+#     # generate indices of atoms' lines that should be kept
+#     atom_lines_to_keep = set(np.random.choice(atoms_lines, size=len(atoms_lines) - n_atom_lines_to_delete, replace=False))
 
 #     # write a new file with some atoms deleted
 #     delatoms_pdb_path_full = delatoms_molecule_path + os.path.sep + "del_atoms_" + pdb_filename # full path to the pdb file with some deleted atoms
@@ -72,40 +72,33 @@ from utils import (
 
 #     return delatoms_pdb_path_full
 
+
 def random_delete_atoms_from_pdb_file(
-    pdb_path_full,
-    delatoms_molecule_path=os.getcwd() + os.path.sep + "delatoms_molecule_data",
+    input_pdb_path_full,
+    delatoms_pdb_path_full,
     delete_prob=0.2,
 ):
     """
     Randomly deletes atoms from the given pdb file to simulate the case when
     some parts of the molecule are completely missed.
 
-    Params:
-    pdb_path_full - full path to the input .pdb file (icnluding its name)
-    delatoms_molecule_path - path to the directory where files with some deleted atoms are
-    stored
-    delete_prob - probability for deleting an atom
-
-    Returns:
-    delatoms_pdb_path_full - full path to the new .pdb file with some atoms deleted
+    Args:
+        input_pdb_path_full - full path to the input .pdb file (icnluding its name)
+        delatoms_pdb_path_full - full path to the output file with some deleted atoms (icnluding its name)
+        delete_prob - probability for deleting an atom
     """
 
-    # exctract pdf filename from the input full path
-    pdb_filename = extract_filename_from_full_path(pdb_path_full)
+    # exctract pdb filename from the input full path
+    input_pdb_filename = extract_filename_from_full_path(input_pdb_path_full)
+    assert input_pdb_filename.endswith(".pdb"), "pdb filename must end with .pdb!"
 
-    assert pdb_filename.endswith(".pdb"), "pdb filename must end with .pdb!"
+    # exctract pdb filename from the output full path
+    delatoms_pdb_filename = extract_filename_from_full_path(delatoms_pdb_path_full)
+    assert delatoms_pdb_filename.endswith(".pdb"), "pdb filename must end with .pdb!"
 
-    # create directory for the molecule files with some deleted atoms if it doesn't exist
-    create_folder(delatoms_molecule_path)
-
-    # construct full path to the pdb file with some deleted atoms
-    delatoms_pdb_path_full = delatoms_molecule_path + os.path.sep + "del_atoms_" + pdb_filename
-
-    with open(pdb_path_full, "r") as input_file:
+    with open(input_pdb_path_full, "r") as input_file:
         with open(delatoms_pdb_path_full, "w") as output_file:
             for input_line in input_file:
-
                 if input_line.startswith("ATOM") or input_line.startswith("HETATM"):
                     # if the current line corresponds to an atom, decide whether this atom should
                     # be deleted by using uniform random number between 0 and 1.
@@ -114,41 +107,6 @@ def random_delete_atoms_from_pdb_file(
                         output_file.write(input_line)
                 else:
                     output_file.write(input_line)
-
-    return delatoms_pdb_path_full
-
-
-def random_delete_atoms_from_multiple_pdb_files(
-    pdb_path_full_list,
-    delatoms_molecule_path=os.getcwd() + os.path.sep + "delatoms_molecule_data",
-    delete_prob=0.2,
-):
-    """
-    Randomly deletes atoms from the several given pdb files to simulate the case when
-    some parts of the molecules are completely missed.
-
-    Params:
-    pdb_path_full_list - list with full paths to the input .pdb files (icnluding their names)
-    delatoms_molecule_path - path to the directory where files with some deleted atoms are
-    stored
-    delete_prob - probability of deleting an atom
-
-    Returns:
-    delatoms_pdb_path_full_list - list with full paths to the new .pdb files with some atoms
-    deleted
-    """
-
-    delatoms_pdb_path_full_list = []  # list to store full paths of the output pdb files
-
-    for pdb_path_full in pdb_path_full_list:
-        delatoms_pdb_path_full = random_delete_atoms_from_pdb_file(
-            pdb_path_full,
-            delatoms_molecule_path=delatoms_molecule_path,
-            delete_prob=delete_prob,
-        )
-        delatoms_pdb_path_full_list.append(delatoms_pdb_path_full)
-
-    return delatoms_pdb_path_full_list
 
 
 if __name__ == "__main__":
@@ -166,27 +124,26 @@ if __name__ == "__main__":
 
     # run python script inside Chimera to compute density map
     density_resolution = 3.5  # resolution of the density map (in Angstrom)
-    density_path = os.getcwd() + os.path.sep + "density_maps" # path to the folder where density will be stored
-    density_filename = (
-            delete_extension_from_filename(
-                input_filename
-            )
-            + ".mrc"
-        )
-    create_folder(density_path) # create a folder for the density files if it doesn't exist
+    density_path = (
+        os.getcwd() + os.path.sep + "density_maps"
+    )  # path to the folder where density will be stored
+    density_filename = delete_extension_from_filename(input_filename) + ".mrc"
+    create_folder(
+        density_path
+    )  # create a folder for the density files if it doesn't exist
     density_path_full = density_path + os.path.sep + density_filename
 
     # create a folder for Chimera logs if it doesn't exist
     chimera_log_path = os.getcwd() + os.path.sep + "chimera_logs"
     create_folder(chimera_log_path)
-    
+
     p = compute_density_map_in_chimera(
-        del_pdb_path, 
-        density_path_full, 
-        is_log=True, 
-        log_path=chimera_log_path, 
+        del_pdb_path,
+        density_path_full,
+        is_log=True,
+        log_path=chimera_log_path,
         density_resolution=density_resolution,
-        stderr_file=PIPE
+        stderr_file=PIPE,
     )
     _, stderr = p.communicate()  # output from the subprocess
 

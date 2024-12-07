@@ -10,16 +10,16 @@ import mrcfile
 import numpy as np
 from Docking import gnina_docking, filter_docked_poses_by_correlation
 from utils import (
-    compute_density_map_in_chimeraX, 
-    split_sdf_file_to_pdbs, 
-    group_conformers_to_single_file, 
+    compute_density_map_in_chimeraX,
+    split_sdf_file_to_pdbs,
+    group_conformers_to_single_file,
     create_folder,
     delete_extension_from_filename,
     rescale_density_map,
     align_density_maps,
     read_molecule,
     save_all_conformers_to_pdb,
-    read_density_data_mrc
+    read_density_data_mrc,
 )
 
 
@@ -60,6 +60,7 @@ def generate_conformers(
 
     return mol
 
+
 if __name__ == "__main__":
     is_log = True
     chimeraX_log_path = os.path.join(os.getcwd(), "cryoEM_maps", "chimeraX_logs")
@@ -72,12 +73,18 @@ if __name__ == "__main__":
     ligand_path_full = os.path.join(raw_data, input_ligand)
     protein_path_full = os.path.join(raw_data, input_protein)
 
-    temp_data = os.path.join(os.getcwd(), "cryoEM_maps", f"RDKit_temp_data_{delete_extension_from_filename(input_ligand)}")
+    temp_data = os.path.join(
+        os.getcwd(),
+        "cryoEM_maps",
+        f"RDKit_temp_data_{delete_extension_from_filename(input_ligand)}",
+    )
     create_folder(temp_data)
 
     density_resolution = 3.5
     n_box = 16
-    first_density_fname = f"first_dens_{delete_extension_from_filename(input_ligand)}.mrc"
+    first_density_fname = (
+        f"first_dens_{delete_extension_from_filename(input_ligand)}.mrc"
+    )
     first_density_path_full = os.path.join(temp_data, first_density_fname)
     p = compute_density_map_in_chimeraX(
         ligand_path_full,
@@ -86,7 +93,7 @@ if __name__ == "__main__":
         n_box=n_box,
         is_log=is_log,
         log_path=chimeraX_log_path,
-        script_path=script_path
+        script_path=script_path,
     )
 
     _, stderr = p.communicate()
@@ -99,7 +106,7 @@ if __name__ == "__main__":
     original_coords = mol.GetConformer().GetPositions()
     original_centroid = np.mean(original_coords, axis=0)
 
-    original_mol = Chem.Mol(mol) # copy original molecule for future allignment
+    original_mol = Chem.Mol(mol)  # copy original molecule for future allignment
 
     # generate conformers
     n_confs = 10
@@ -146,36 +153,40 @@ if __name__ == "__main__":
     corrs_path_full = os.path.join(temp_data, "docking_correlations.txt")
 
     corrs, n_appr, appr_dock_path_full_list = filter_docked_poses_by_correlation(
-                                                conformer_path_list,
-                                                first_density_path_full,
-                                                threshold_correlation=threshold_correlation,
-                                                not_found_corr_value=not_found_corr_value,
-                                                chimeraX_output_base_filename=chimeraX_output_base_filename,
-                                                chimeraX_output_path=chimeraX_output_path,
-                                                density_resolution=density_resolution,
-                                                n_box=n_box,
-                                                is_log=is_log,
-                                                log_path=chimeraX_log_path,
-                                                clear_chimeraX_output=clear_chimeraX_output,
-                                                write_corrs_to_file=write_corrs_to_file,
-                                                corrs_path_full=corrs_path_full
-                                            )
+        conformer_path_list,
+        first_density_path_full,
+        threshold_correlation=threshold_correlation,
+        not_found_corr_value=not_found_corr_value,
+        chimeraX_output_base_filename=chimeraX_output_base_filename,
+        chimeraX_output_path=chimeraX_output_path,
+        density_resolution=density_resolution,
+        n_box=n_box,
+        is_log=is_log,
+        log_path=chimeraX_log_path,
+        clear_chimeraX_output=clear_chimeraX_output,
+        write_corrs_to_file=write_corrs_to_file,
+        corrs_path_full=corrs_path_full,
+    )
     print(f"corrs: {corrs}")
     print(f"n_appr: {n_appr}")
     print(f"appr_dock_path_full_list: {appr_dock_path_full_list}")
 
     if n_appr == 0:
-        raise RuntimeError("No appropariate conformers found based on correlation threshold!")
+        raise RuntimeError(
+            "No appropariate conformers found based on correlation threshold!"
+        )
 
-    conformers_filename = f"group_confs_{delete_extension_from_filename(input_ligand)}.pdb"
+    conformers_filename = (
+        f"group_confs_{delete_extension_from_filename(input_ligand)}.pdb"
+    )
     conforemrs_path_full = os.path.join(temp_data, conformers_filename)
     group_conformers_to_single_file(
-                            appr_dock_path_full_list,
-                            conforemrs_path_full,
-                            delete_input=False
-                            )
-    
-    final_density_fname = f"final_dens_{delete_extension_from_filename(input_ligand)}.mrc"
+        appr_dock_path_full_list, conforemrs_path_full, delete_input=False
+    )
+
+    final_density_fname = (
+        f"final_dens_{delete_extension_from_filename(input_ligand)}.mrc"
+    )
     final_density_path_full = os.path.join(temp_data, final_density_fname)
     p = compute_density_map_in_chimeraX(
         conforemrs_path_full,
@@ -184,14 +195,14 @@ if __name__ == "__main__":
         n_box=n_box,
         is_log=is_log,
         log_path=chimeraX_log_path,
-        script_path=script_path
+        script_path=script_path,
     )
 
     _, stderr = p.communicate()
 
     if p.returncode != 0 or stderr:
         raise RuntimeError(f"Failed to compute final density map: {stderr}")
-    
+
     dens, header, voxel_size = read_density_data_mrc(final_density_path_full)
     print(header.origin)
     print(header.nx)

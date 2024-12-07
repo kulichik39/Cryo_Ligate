@@ -1,6 +1,4 @@
-
-
-######### Perform docking ############### 
+######### Perform docking ###############
 # from vina import Vina
 import os
 import shutil
@@ -11,15 +9,16 @@ from subprocess import Popen, PIPE, DEVNULL
 from tqdm import tqdm
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from pymol import cmd
+
+# from pymol import cmd
 from utils import (
-    split_sdf_file_to_pdbs, 
-    create_folder, 
-    compute_mol_map_correlation_in_chimeraX, 
+    split_sdf_file_to_pdbs,
+    create_folder,
+    compute_mol_map_correlation_in_chimeraX,
     extract_correlation_from_chimera_file,
     read_density_data_mrc,
     calculate_center_of_mass_of_density,
-    calculate_ligand_size
+    calculate_ligand_size,
 )
 
 
@@ -35,21 +34,21 @@ from utils import (
 #         protein_path_output = os.path.join(data_dir, cid, f'{cid}_protein_processed ')
 #         ligand_path_input = os.path.join(data_dir, cid, f'{cid}_ligand.pdb')
 #         ligand_path_output = os.path.join(data_dir, cid, f'{cid}_ligand.pdbqt')
-   
+
 #         # mol = openbabel.OBMol()
 #         # if not ob_Conversion.ReadFile(mol, protein_path_input):
 #         #     print(f"Error reading {protein_path_input}")
 #         #     return
-        
+
 #         # # Write to the output PDBQT file
 #         # if not ob_Conversion.WriteFile(mol, protein_path_output):
 #         #     print(f"Error writing {protein_path_output}")
 #         #     return
-        
+
 #         # if not ob_Conversion.ReadFile(mol, ligand_path_input):
 #         #     print(f"Error reading {ligand_path_input}")
 #         #     return
-        
+
 #         # # Write to the output PDBQT file
 #         # if not ob_Conversion.WriteFile(mol, ligand_path_output):
 #         #     print(f"Error writing {ligand_path_output}")
@@ -60,7 +59,7 @@ from utils import (
 
 #         bashCommand_receptor = f"prepare_receptor4 -r {protein_path_input} -o {protein_path_output}"
 #         os.system(bashCommand_receptor)
-    
+
 #         print(f"Conversion successful PROTEIN: {protein_path_input} -> {protein_path_output}")
 #         print(f"Conversion successful LIGAND: {ligand_path_input} -> {ligand_path_output}")
 
@@ -87,7 +86,7 @@ from utils import (
 
 #         v.set_receptor(f'{receptor}.pdbqt')
 #         v.set_ligand_from_file(f'{ligand}.pdbqt')
-        
+
 #         v.compute_vina_maps(center=center_of_mass, box_size=[30, 30, 30])
 
 #         # Score the current pose
@@ -104,25 +103,25 @@ from utils import (
 #         v.write_poses(f'{output}.pdbqt', n_poses=10, overwrite=True)
 
 
-def gnina_docking(    
+def gnina_docking(
     ligand_path_full,
     protein_path_full,
     ligand_density_path_full,
     output_path_full,
     n_pos,
     box_extension=5.0,
-    path_to_gnina=os.getcwd() + os.path.sep + "gnina" 
+    path_to_gnina=os.getcwd() + os.path.sep + "gnina",
 ):
     """
     Performs docking using gnina software. Runs gnina commands through a subprocess.
-    
+
     Args:
         ligand_path_full - full path to the ligand file (icnluding its name), must be a .pdb file!
         protein_path_full - full path to the protein file (icnluding its name), usually a .pdb file
-        ligand_density_path_full - full path to the file with ligand's density (icnluding its name), 
+        ligand_density_path_full - full path to the file with ligand's density (icnluding its name),
         must be an .mrc file!
-        output_path_full - full path to the output file with generated poses (icnluding its name), 
-        usually a .pdb file
+        output_path_full - full path to the output file with generated poses (icnluding its name),
+        usually a .sdf file
         n_pos - number of poses to generate in docking
         box_extension - used to compute the box size for docking, the box size is ligand_size + box_extension
         path_to_gnina - path to the gnina executable
@@ -131,14 +130,22 @@ def gnina_docking(
         p - object of the Popen class corresponding to the gnina's subprocess
     """
 
-    assert ligand_density_path_full.endswith(".mrc"), "Error in gnina docking: Density file must be an .mrc file!"
-    assert ligand_path_full.endswith(".pdb"), "Error in gnina docking: Ligand file must be a .pdb file!"
+    assert ligand_density_path_full.endswith(
+        ".mrc"
+    ), "Error in gnina docking: Density file must be an .mrc file!"
+    assert ligand_path_full.endswith(
+        ".pdb"
+    ), "Error in gnina docking: Ligand file must be a .pdb file!"
 
-    density_map, header, voxel_size = read_density_data_mrc(ligand_density_path_full) # TODO: replace with low resolution maps 
+    density_map, header, voxel_size = read_density_data_mrc(
+        ligand_density_path_full
+    )  # TODO: replace with low resolution maps
     origin = header.origin
     origin = np.array(origin.tolist())
-    
-    center_of_mass = calculate_center_of_mass_of_density(density_map, voxel_size=voxel_size, origin=origin) 
+
+    center_of_mass = calculate_center_of_mass_of_density(
+        density_map, voxel_size=voxel_size, origin=origin
+    )
 
     center_of_mass_x = center_of_mass[0]
     center_of_mass_y = center_of_mass[1]
@@ -154,23 +161,85 @@ def gnina_docking(
     p = Popen(
         [
             path_to_gnina,
-            "-r", protein_path_full,
-            "-l", ligand_path_full,
-            "--center_x", str(center_of_mass_x),
-            "--center_y", str(center_of_mass_y),
-            "--center_z", str(center_of_mass_z),
-            "--size_x", str(box_size),
-            "--size_y", str(box_size),
-            "--size_z", str(box_size),
-            "--num_modes", str(n_pos),
-            "-o", output_path_full,
-            "--cpu", str(1)
+            "-r",
+            protein_path_full,
+            "-l",
+            ligand_path_full,
+            "--center_x",
+            str(center_of_mass_x),
+            "--center_y",
+            str(center_of_mass_y),
+            "--center_z",
+            str(center_of_mass_z),
+            "--size_x",
+            str(box_size),
+            "--size_y",
+            str(box_size),
+            "--size_z",
+            str(box_size),
+            "--num_modes",
+            str(n_pos),
+            "-o",
+            output_path_full,
+            "--cpu",
+            str(1),
         ],
-        stdout=DEVNULL,
+        stdout=None,
         stderr=PIPE,
     )
 
     return p
+
+
+# def gnina_docking(
+#     ligand_path_full,
+#     protein_path_full,
+#     ligand_density_path_full,
+#     output_path_full,
+#     n_pos,
+#     box_extension=5.0,
+#     path_to_gnina=os.getcwd() + os.path.sep + "gnina",
+# ):
+#     """
+#     Performs docking using gnina software. Runs gnina commands through a subprocess.
+
+#     Args:
+#         ligand_path_full - full path to the ligand file (icnluding its name), must be a .pdb file!
+#         protein_path_full - full path to the protein file (icnluding its name), usually a .pdb file
+#         ligand_density_path_full - full path to the file with ligand's density (icnluding its name),
+#         must be an .mrc file!
+#         output_path_full - full path to the output file with generated poses (icnluding its name),
+#         usually a .sdf file
+#         n_pos - number of poses to generate in docking
+#         box_extension - used to compute the box size for docking, the box size is ligand_size + box_extension
+#         path_to_gnina - path to the gnina executable
+
+#     Returns:
+#         p - object of the Popen class corresponding to the gnina's subprocess
+#     """
+#     mol = Chem.MolFromPDBFile(ligand_path_full, sanitize=False, removeHs=False)
+#     original_mol = Chem.Mol(mol)
+#     params = AllChem.ETKDGv3()
+#     params.useSmallRingTorsions = False
+#     params.pruneRMsThresh = 1.0
+#     params.randomSeed = 0xF00D
+#     params.useRandomCoords = False
+
+#     # generate conformers
+#     AllChem.EmbedMultipleConfs(mol, numConfs=n_pos, params=params)
+
+#     conformer_ids = [x.GetId() for x in mol.GetConformers()]
+#     for conf_id in conformer_ids:
+#         AllChem.AlignMol(mol, original_mol, prbCid=conf_id, refCid=0)
+
+#     with Chem.SDWriter(output_path_full) as writer:
+#         for cid in range(mol.GetNumConformers()):
+#             writer.write(mol, confId=cid)
+
+#     p = Popen(["echo", "5"], shell=True, stderr=PIPE)
+
+#     return p
+
 
 # def save_frames_from_trajectory_rdkit(data_dir,data_df):
 #     pbar = tqdm(total=len(data_df))
@@ -181,7 +250,7 @@ def gnina_docking(
 #         # input = os.path.join(data_dir, cid, f'{cid}_gnina_docked.sdf.gz')
 #         # bashCommand_ligand = f"gunzip {input}"
 #         # os.system(bashCommand_ligand)
-        
+
 #         sdf_file = os.path.join(data_dir, cid, f'{cid}_gnina_docked.sdf')
 #         output = os.path.join(data_dir, cid, f'{cid}_gnina_docked_frame')
 
@@ -245,20 +314,20 @@ def filter_docked_poses_by_correlation(
     script_path=os.getcwd() + os.path.sep + "chimeraX_scripts",
     clear_chimeraX_output=True,
     write_corrs_to_file=True,
-    corrs_path_full=os.getcwd() + os.path.sep + "docking_correlations.txt"
+    corrs_path_full=os.getcwd() + os.path.sep + "docking_correlations.txt",
 ):
     """
     Filters out generated docking poses by given threshold correlation.
     The correlation is computed between the density map of each provided pose and
-    the target density that was used in docking. For a particular pose, if the correlation 
-    is less than the threshod value then this pose is considered to be inappropriate. 
+    the target density that was used in docking. For a particular pose, if the correlation
+    is less than the threshod value then this pose is considered to be inappropriate.
 
     Args:
         docked_path_full_list - list of full paths to the input docked poses (including their filenames)
         target_density_path_full - full path to the target denisty file (including its filename)
         threshold_correlation - threshold correlation value
         not_found_corr_value - the value we use if the correlation for a particular pose wasn't found/computed
-        chimeraX_output_base_filename - base name of the file to store output from ChimeraX script 
+        chimeraX_output_base_filename - base name of the file to store output from ChimeraX script
         (needed to read correlation value for a particular pose)
         chimeraX_output_path - path to the folder where output ChimeraX files will be stored
         density_resolution - desired resolution of the maps we generate for the molecules (in Angstrom)
@@ -280,21 +349,25 @@ def filter_docked_poses_by_correlation(
     # create folder for ChimeraX output files if doesn't exist
     create_folder(chimeraX_output_path)
 
-    corrs = [] # list to store computed correlations
-    n_appr = 0 # number of appropriate docked poses (those that passed the correlation threshold)
-    appr_dock_path_full_list = [] # list to store full paths to the appropriate docked poses
+    corrs = []  # list to store computed correlations
+    n_appr = 0  # number of appropriate docked poses (those that passed the correlation threshold)
+    appr_dock_path_full_list = (
+        []
+    )  # list to store full paths to the appropriate docked poses
 
     # compute correlations for the provided poses and filter them by threshold value
     for i in range(len(docked_path_full_list)):
         docked_path_full = docked_path_full_list[i]
 
         # construct full path to the output ChimeraX file
-        output_filename =  f"corr_pos_{i+1}_{chimeraX_output_base_filename}"
-        output_path_full = chimeraX_output_path + os.path.sep + output_filename 
+        output_filename = f"corr_pos_{i+1}_{chimeraX_output_base_filename}"
+        output_path_full = chimeraX_output_path + os.path.sep + output_filename
 
         # compute correlation inside ChimeraX
         corr = not_found_corr_value
-        with open(output_path_full, "w") as output_file: # ChimeraX output with correlation will be written here
+        with open(
+            output_path_full, "w"
+        ) as output_file:  # ChimeraX output with correlation will be written here
             p = compute_mol_map_correlation_in_chimeraX(
                 docked_path_full,
                 target_density_path_full,
@@ -305,13 +378,12 @@ def filter_docked_poses_by_correlation(
                 log_path=log_path,
                 script_path=script_path,
             )
-            _, stderr = p.communicate() # catch errors from ChimeraX subprocess
+            _, stderr = p.communicate()  # catch errors from ChimeraX subprocess
 
         if (p.returncode == 0) and (not stderr):
             try:
                 corr = extract_correlation_from_chimera_file(
-                    output_path_full, 
-                    not_found_value=not_found_corr_value
+                    output_path_full, not_found_value=not_found_corr_value
                 )
             except Exception as e:
                 print(f"Failed to extract correlation from Chimera output file: {e}")
@@ -319,19 +391,19 @@ def filter_docked_poses_by_correlation(
         # store computed correlation
         corrs.append(corr)
 
-        # filter poses by the threshold correlation 
+        # filter poses by the threshold correlation
         if corr >= threshold_correlation:
             n_appr += 1
             appr_dock_path_full_list.append(docked_path_full)
-    
+
     # write computed correlation to file if needed
     if write_corrs_to_file:
         with open(corrs_path_full, "w") as file:
             for i in range(len(docked_path_full_list)):
                 docked_path_full = docked_path_full_list[i]
                 corr = corrs[i]
-                file.write(f"{docked_path_full} {corr}\n") 
-    
+                file.write(f"{docked_path_full} {corr}\n")
+
     # clear ChimeraX output if needed
     if clear_chimeraX_output:
         shutil.rmtree(chimeraX_output_path)
@@ -361,8 +433,8 @@ def filter_docked_poses_by_correlation(
 #             except:
 #                 pass
 #         f.close()
-    
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pass
     # distance = 5
     # input_ligand_format = 'mol2'
@@ -372,12 +444,9 @@ if __name__ == '__main__':
     # data_df = pd.read_csv(os.path.join(data_dir, 'PDB_IDs_with_rdkit_length_less_than_16A_succ_gnina.csv'))
     # # data_df = pd.read_csv(os.path.join(data_dir, 'temp.csv'))
 
-    # ## generate pocket within 5 Ångström around ligand 
+    # ## generate pocket within 5 Ångström around ligand
     # #convert_pdb_to_pdbqt(data_dir,data_df)
     # # Vina_docking(data_dir,data_df)
     # # gnina_docking(data_dir,data_df)
     # # save_frames_from_trajectory_pymol(data_dir,data_df)
     # get_cross_correlation(data_dir,data_df)
-    
-
-

@@ -1,15 +1,27 @@
 import os
 
 import scipy.ndimage
-from utils import compute_mol_map_correlation_in_chimera, delete_extension_from_filename, read_density_data_mrc, calculate_center_of_mass_of_density
+from utils import (
+    compute_mol_map_correlation_in_chimera,
+    delete_extension_from_filename,
+    read_density_data_mrc,
+    calculate_center_of_mass_of_density,
+)
 from subprocess import Popen, PIPE
 import mrcfile
 import numpy as np
 import scipy
-mol_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "raw_molecule_data", "4ui8_ligand.pdb")
-target_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "first_dens_4ui8_ligand.mrc")
+
+mol_path_full = os.path.join(
+    os.getcwd(), "cryoEM_maps", "raw_molecule_data", "4ui8_ligand.pdb"
+)
+target_path_full = os.path.join(
+    os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "first_dens_4ui8_ligand.mrc"
+)
 log_path = os.path.join(os.getcwd(), "cryoEM_maps", "chimera_logs")
-output_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "chimera_output.txt")
+output_path_full = os.path.join(
+    os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "chimera_output.txt"
+)
 
 # p = compute_mol_map_correlation_in_chimera(
 #     mol_path_full,
@@ -28,9 +40,9 @@ output_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_liga
 #         "chimera",
 #         "--nogui",
 #         "--nostatus",
-#         "--script", 
+#         "--script",
 #         f"{script_line} -i {mol_path_full} -r {1.0} -t {target_path_full} -l {log_path}"
-#         ]  
+#         ]
 
 # file = open(output_path_full, "w")
 # p = Popen(
@@ -62,8 +74,8 @@ output_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_liga
 # #         print(mrc1.header.origin)
 
 
-# map_1 = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "dens_4ui8_ligand.mrc") 
-# map_2 = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "scaled_dens_4ui8_ligand.mrc") 
+# map_1 = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "dens_4ui8_ligand.mrc")
+# map_2 = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand", "scaled_dens_4ui8_ligand.mrc")
 # dnesity_1, header_1, voxel_1 = read_density_data_mrc(map_1)
 # origin_1 = header_1.origin.tolist()
 # voxel_size_1 = voxel_1.x
@@ -81,7 +93,7 @@ output_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_liga
 # origin_2 = header_2.origin.tolist()
 # voxel_size_2 = voxel_2.x
 # print(voxel_2.x)
-# print(voxel_2.y)                                                                                                                                                                                                           
+# print(voxel_2.y)
 # print(voxel_2.z)
 # print(origin_2)
 # print(header_2.nx)
@@ -109,8 +121,6 @@ output_path_full = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_liga
 # print(f"New center: {ccc}")
 
 
-
-
 # print(f"New new center: {scipy.ndimage.center_of_mass(dnesity_2)}")
 temp_data = os.path.join(os.getcwd(), "cryoEM_maps", "temp_data_4ui8_ligand")
 output_dens_full = os.path.join(temp_data, "map.mrc")
@@ -123,4 +133,3 @@ print(header.nx)
 print(header.ny)
 print(header.nz)
 print(voxel_size)
-

@@ -15,7 +15,7 @@ from utils import (
     log,
     create_folder,
     extract_filename_from_full_path,
-    delete_extension_from_filename
+    delete_extension_from_filename,
 )
 
 from cryoEM_maps.internal_flexibility import (
@@ -24,7 +24,8 @@ from cryoEM_maps.internal_flexibility import (
 
 from cryoEM_maps.missing_parts import random_delete_atoms_from_pdb_file
 
-def read_complexes_names_from_file(path_full, skip_header=1, delimiter=','):
+
+def read_complexes_names_from_file(path_full, skip_header=1, delimiter=","):
     """
     Reads complexes' names from the given file and stores them in numpy array.
 
@@ -34,14 +35,19 @@ def read_complexes_names_from_file(path_full, skip_header=1, delimiter=','):
         delimiter - delimiter used in the input file (e.g. ',' for .csv)
 
     Returns:
-        complex_names - numpy array with complexes' names    
+        complex_names - numpy array with complexes' names
     """
 
-    complex_names = np.genfromtxt(path_full, skip_header=skip_header, delimiter=delimiter, dtype=np.str_)
+    complex_names = np.genfromtxt(
+        path_full, skip_header=skip_header, delimiter=delimiter, dtype=np.str_
+    )
 
-    assert len(complex_names.shape) == 1, f"Array with complexes' names should be 1D, but has the shape: {complex_names.shape}"
+    assert (
+        len(complex_names.shape) == 1
+    ), f"Array with complexes' names should be 1D, but has the shape: {complex_names.shape}"
 
-    return complex_names 
+    return complex_names
+
 
 def find_pdb_ligand_file_in_db(complex_name, db_path, base_ligand_name="_ligand.pdb"):
     """
@@ -65,11 +71,13 @@ def find_pdb_ligand_file_in_db(complex_name, db_path, base_ligand_name="_ligand.
     ligand_filename = complex_name + base_ligand_name
     if os.path.isfile(complex_folder + os.path.sep + ligand_filename):
         return complex_folder + os.path.sep + ligand_filename
-    
+
     raise RuntimeError(f"Ligand file for the {complex_name} wasn't found!")
 
 
-def find_pdb_protein_file_in_db(complex_name, db_path, base_protein_name="_protein_processed.pdb"):
+def find_pdb_protein_file_in_db(
+    complex_name, db_path, base_protein_name="_protein_processed.pdb"
+):
     """
     Finds .pdb protein file for the given complex in the database.
     If the file wasn't found, raises RuntimeError.
@@ -91,27 +99,27 @@ def find_pdb_protein_file_in_db(complex_name, db_path, base_protein_name="_prote
     protein_filename = complex_name + base_protein_name
     if os.path.isfile(complex_folder + os.path.sep + protein_filename):
         return complex_folder + os.path.sep + protein_filename
-    
+
     raise RuntimeError(f"Protein file for the {complex_name} wasn't found!")
 
 
 def generate_low_resolution_density(
-        ligand_path_full,
-        protein_path_full,
-        output_density_path_full,
-        temp_data=os.path.join(os.getcwd(), "temp"),
-        n_confs=10,
-        generation_mode="docking",
-        conformers_kwargs={},
-        density_resolution=3.5,
-        n_box=16,
-        is_chimeraX_log=True,
-        chimeraX_log_path=os.path.join(os.getcwd(), "chimeraX_logs"),
-        chimeraX_script_path=os.path.join(os.getcwd(), "chimeraX_scripts"),
-        threshold_correlation=0.6,
-        not_found_corr_value=0.0,
-        write_corrs_to_file=True,
-        delete_prob=0.2,
+    ligand_path_full,
+    protein_path_full,
+    output_density_path_full,
+    temp_data=os.path.join(os.getcwd(), "temp"),
+    n_confs=10,
+    generation_mode="docking",
+    conformers_kwargs={},
+    density_resolution=3.5,
+    n_box=16,
+    is_chimeraX_log=True,
+    chimeraX_log_path=os.path.join(os.getcwd(), "chimeraX_logs"),
+    chimeraX_script_path=os.path.join(os.getcwd(), "chimeraX_scripts"),
+    threshold_correlation=0.6,
+    not_found_corr_value=0.0,
+    write_corrs_to_file=True,
+    delete_prob=0.2,
 ):
     """
     Creates low resolution density map for the given ligand.
@@ -127,7 +135,7 @@ def generate_low_resolution_density(
         density_resolution - desired resolution of the map (in Angstrom)
         n_box - number of points for the map's cubic box
         is_chimeraX_log - should we write logs for ChimeraX scripts
-        chimeraX_log_path - path to the folder where ChimeraX's log file will be stored 
+        chimeraX_log_path - path to the folder where ChimeraX's log file will be stored
         (excluding the file's name which will be created automatically)
         chimeraX_script_path - path to the folder with the python scripts for ChimeraX
         threshold_correlation - threshold correlation value for cross-correlation check
@@ -136,11 +144,12 @@ def generate_low_resolution_density(
         delete_prob - probability for deleting an atom
     """
     # parameters for conformers generation
-    lignad_fname = extract_filename_from_full_path(ligand_path_full) # extract ligand's file name
+    lignad_fname = extract_filename_from_full_path(
+        ligand_path_full
+    )  # extract ligand's file name
     output_confs_path_full = os.path.join(
-        temp_data, 
-        f"{delete_extension_from_filename(lignad_fname)}_conformers.pdb"
-    ) # construct path to the output file with conformers
+        temp_data, f"{delete_extension_from_filename(lignad_fname)}_conformers.pdb"
+    )  # construct path to the output file with conformers
     chimeraX_output_base_filename = "output.tmp"
     chimeraX_output_path = os.path.join(temp_data, "chimeraX_output")
     create_folder(chimeraX_output_path)
@@ -167,15 +176,18 @@ def generate_low_resolution_density(
         chimeraX_output_path=chimeraX_output_path,
         clear_chimeraX_output=clear_chimeraX_output,
         write_corrs_to_file=write_corrs_to_file,
-        corrs_path_full=corrs_path_full
+        corrs_path_full=corrs_path_full,
     )
 
     # randomly delete atoms from conformers
-    del_atoms_conformers_path_full = random_delete_atoms_from_pdb_file(
-                                     output_confs_path_full, 
-                                     delatoms_molecule_path=temp_data,
-                                     delete_prob=delete_prob
-                                    )
+    del_atoms_conformers_path_full = os.path.join(
+        temp_data, f"del_atoms_confs_{delete_extension_from_filename(lignad_fname)}.pdb"
+    )
+    random_delete_atoms_from_pdb_file(
+        output_confs_path_full,
+        del_atoms_conformers_path_full,
+        delete_prob=delete_prob,
+    )
 
     # generate final density map for the conformers
     p = compute_density_map_in_chimeraX(
@@ -185,7 +197,7 @@ def generate_low_resolution_density(
         n_box=n_box,
         is_log=is_chimeraX_log,
         log_path=chimeraX_log_path,
-        script_path=chimeraX_script_path
+        script_path=chimeraX_script_path,
     )
 
     _, stderr = p.communicate()
@@ -195,28 +207,28 @@ def generate_low_resolution_density(
 
 
 def main(
-        complex_name,
-        db_path,
-        output_density_path_full,
-        base_ligand_name="_ligand.pdb",
-        base_protein_name="_protein_processed.pdb",
-        n_confs=10,
-        generation_mode="docking",
-        conformers_kwargs={},
-        density_resolution=3.5,
-        n_box=16,
-        is_chimeraX_log=True,
-        chimeraX_log_path=os.path.join(os.getcwd(), "chimeraX_logs"),
-        chimeraX_script_path=os.path.join(os.getcwd(), "chimeraX_scripts"),
-        threshold_correlation=0.6,
-        not_found_corr_value=0.0,
-        write_corrs_to_file=True,
-        delete_prob=0.2,
-        is_main_log=True,
-        main_log_filename="log.txt",
-        main_log_path=os.path.join(os.getcwd(), "main_logs"),
-        clear_temp=True,
-        ):
+    complex_name,
+    db_path,
+    output_density_path_full,
+    base_ligand_name="_ligand.pdb",
+    base_protein_name="_protein_processed.pdb",
+    n_confs=10,
+    generation_mode="docking",
+    conformers_kwargs={},
+    density_resolution=3.5,
+    n_box=16,
+    is_chimeraX_log=True,
+    chimeraX_log_path=os.path.join(os.getcwd(), "chimeraX_logs"),
+    chimeraX_script_path=os.path.join(os.getcwd(), "chimeraX_scripts"),
+    threshold_correlation=0.6,
+    not_found_corr_value=0.0,
+    write_corrs_to_file=True,
+    delete_prob=0.2,
+    is_main_log=True,
+    main_log_filename="log.txt",
+    main_log_path=os.path.join(os.getcwd(), "main_logs"),
+    clear_temp=True,
+):
     """
     The main function for generating low resolution density maps for the complexes in the database.
 
@@ -232,7 +244,7 @@ def main(
         density_resolution - desired resolution of the map (in Angstrom)
         n_box - number of points for the map's cubic box
         is_chimeraX_log - should we write logs for ChimeraX scripts
-        chimeraX_log_path - path to the folder where ChimeraX's log file will be stored 
+        chimeraX_log_path - path to the folder where ChimeraX's log file will be stored
         (excluding the file's name which will be created automatically)
         chimeraX_script_path - path to the folder with the python scripts for ChimeraX
         threshold_correlation - threshold correlation value for cross-correlation check
@@ -247,10 +259,14 @@ def main(
 
     try:
         # find ligand file in the database
-        ligand_path_full = find_pdb_ligand_file_in_db(complex_name, db_path, base_ligand_name=base_ligand_name)
+        ligand_path_full = find_pdb_ligand_file_in_db(
+            complex_name, db_path, base_ligand_name=base_ligand_name
+        )
 
         # find protein file in the database
-        protein_path_full = find_pdb_protein_file_in_db(complex_name, db_path, base_protein_name=base_protein_name)
+        protein_path_full = find_pdb_protein_file_in_db(
+            complex_name, db_path, base_protein_name=base_protein_name
+        )
 
         # create a folder for temporary data
         temp_data = os.path.join(os.getcwd(), f"{complex_name}_temp")
@@ -278,23 +294,23 @@ def main(
 
         if is_main_log:
             log(
-                f"Successfully computed density map for {complex_name}. Check the map in: {output_density_path_full}.", 
-                status="INFO", 
-                log_filename=main_log_filename, 
+                f"Successfully computed density map for {complex_name}. Check the map in: {output_density_path_full}.",
+                status="INFO",
+                log_filename=main_log_filename,
                 log_path=main_log_path,
             )
 
     except Exception as e:
         if is_main_log:
             log(
-                f"Failed to compute density map for {complex_name}: {e}", 
-                status="ERROR", 
-                log_filename=main_log_filename, 
+                f"Failed to compute density map for {complex_name}: {e}",
+                status="ERROR",
+                log_filename=main_log_filename,
                 log_path=main_log_path,
             )
 
     finally:
-        if clear_temp: # delete the folder with temporary data if needed
+        if clear_temp:  # delete the folder with temporary data if needed
             shutil.rmtree(temp_data)
 
 
@@ -308,25 +324,37 @@ def apply_args_and_kwargs(fn, args, kwargs):
         kwargs - keyword arguments for fn
 
     Returns:
-        result of the fn call with args and kwargs     
+        result of the fn call with args and kwargs
     """
     print(f"Started {fn.__name__} with args: {args} and kwargs: {kwargs}")
     return fn(*args, **kwargs)
 
+
 if __name__ == "__main__":
 
     # path to the database with molecule data
-    db_path = os.path.sep + os.path.sep.join(["mnt", "cephfs", "projects", "2023110101_Ligand_fitting_to_EM_maps", "PDBbind", "PDBBind_Zenodo_6408497"])
+    db_path = os.path.sep + os.path.sep.join(
+        [
+            "mnt",
+            "cephfs",
+            "projects",
+            "2023110101_Ligand_fitting_to_EM_maps",
+            "PDBbind",
+            "PDBBind_Zenodo_6408497",
+        ]
+    )
 
     # load molecule names
-    complex_names_csv = db_path + os.path.sep + "PDB_IDs_with_rdkit_length_less_than_16A_succ_gnina.csv" 
+    complex_names_csv = (
+        db_path + os.path.sep + "PDB_IDs_with_rdkit_length_less_than_16A_succ_gnina.csv"
+    )
     complex_names = read_complexes_names_from_file(complex_names_csv)
 
-    # read script's arguments 
+    # read script's arguments
     opts, args = getopt.getopt(sys.argv[1:], "s:e:p:")
-    start_index = None # start index for the complex names
-    end_index = None # end index for the complex names
-    n_proc = None # number of processes for multiprocessing (Pool.starmap)
+    start_index = None  # start index for the complex names
+    end_index = None  # end index for the complex names
+    n_proc = None  # number of processes for multiprocessing (Pool.starmap)
     for opt, arg in opts:
         if opt == "-s":
             start_index = int(arg)
@@ -334,13 +362,13 @@ if __name__ == "__main__":
             end_index = int(arg)
         elif opt == "-p":
             n_proc = int(arg)
-    
+
     assert start_index is not None, "Start index is None after arugment's parsing"
     assert end_index is not None, "End index is None after arugment's parsing"
     assert n_proc is not None, "Number of processes is None after arugment's parsing"
 
-    # apply start and end indice to the molecule names 
-    complex_names = complex_names[start_index: (end_index + 1)]
+    # apply start and end indice to the molecule names
+    complex_names = complex_names[start_index : (end_index + 1)]
     n_complexes = len(complex_names)
     print(f"Computing low resolution density maps for {n_complexes} complexes....")
 
@@ -349,7 +377,7 @@ if __name__ == "__main__":
     is_chimeraX_log = False
     chimeraX_log_path = None
     if is_chimeraX_log:
-        chimeraX_log_path=os.path.join(os.getcwd(), "chimeraX_logs")
+        chimeraX_log_path = os.path.join(os.getcwd(), "chimeraX_logs")
         create_folder(chimeraX_log_path)
     is_main_log = True
     main_log_path = None
@@ -358,7 +386,7 @@ if __name__ == "__main__":
             datetime.now(timezone.utc).strftime("%d_%m_%Y_%H.%M.%S.%f")[:-2]
             + "_main_log.txt"
         )
-        main_log_path=os.path.join(os.getcwd(), "main_logs")
+        main_log_path = os.path.join(os.getcwd(), "main_logs")
         create_folder(main_log_path)
 
     # specify keyword arguments for the main function
@@ -366,7 +394,10 @@ if __name__ == "__main__":
     base_protein_name = "_protein_processed.pdb"
     n_confs = 10
     generation_mode = "docking"
-    conformers_kwargs = {"box_extension": 5.0, "path_to_gnina": os.path.join(os.getcwd(), "gnina")}
+    conformers_kwargs = {
+        "box_extension": 5.0,
+        "path_to_gnina": os.path.join(os.getcwd(), "gnina"),
+    }
     density_resolution = 3.5
     n_box = 16
     chimeraX_script_path = os.path.join(os.getcwd(), "chimeraX_scripts")
@@ -410,18 +441,13 @@ if __name__ == "__main__":
         complex_names,
         repeat(db_path, n_complexes),
         outup_density_path_list,
-    ) # iterable for positional arguments
+    )  # iterable for positional arguments
     main_kwargs_iter = repeat(main_kwargs, n_complexes)
     starmap_args_iter = zip(
-        repeat(main, n_complexes),
-        main_args_iter,
-        main_kwargs_iter
-    ) # combined positional and keyword arguments for Pool.starmap()
+        repeat(main, n_complexes), main_args_iter, main_kwargs_iter
+    )  # combined positional and keyword arguments for Pool.starmap()
 
     with Pool(n_proc) as pool:
         result = pool.starmap(apply_args_and_kwargs, starmap_args_iter)
         for r in result:
             pass
-
-
-
